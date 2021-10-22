@@ -296,7 +296,7 @@
               <td class="text-right">
                 @if(!empty($line_taxes))
                   @foreach($line_taxes as $k => $v)
-                    <strong><small>{{$k}}</small></strong> - <span class="display_currency pull-right" data-currency_symbol="true">{{ $v }}</span><br>
+                    <strong><small>{{$k}}</small></strong> - <span class="display_currency pull-right" data-currency_symbol="true">{{ $v + $total_tax_addons}}</span><br>
                   @endforeach
                 @else
                 0.00

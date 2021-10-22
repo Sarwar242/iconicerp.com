@@ -61,8 +61,8 @@
 				@endif
 				
 				@if(!empty($receipt_details->invoice_heading))
-					<p class="" style="font-weight: bold; font-size: 20px !important">{!! $receipt_details->invoice_heading !!}</p>
-					<hr style="center" width="50%">
+					<p class="center" style="font-weight: bold; font-size: 20px !important">{!! $receipt_details->invoice_heading !!}</p>
+					<hr style=" margin-bottom:5px !important;" width="50%">
 				@endif
 			</td>
 		</tr>
@@ -313,26 +313,26 @@
 	</div>
 </div>       
 
-</br>
+<br/>
 
 @if(App::getLocale() == 'ar')
 
 <!--- Invoice table -->
 <table style="font-family: arial, sans-serif; border-collapse: collapse; width: 50%; color: black !important;" class="left">
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;"> رقم الفاتورة </td>
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;"> رقم الفاتورة </td>
         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:top; font-size: 12px !important;">{{$receipt_details->invoice_no}}</td>
-        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;">{!! $receipt_details->invoice_no_prefix !!}</td>
+        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;">{!! $receipt_details->invoice_no_prefix !!}</td>
     </tr>
   
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;"> التاريخ </td>
-        <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:top; font-size: 12px !important;">{{$receipt_details->invoice_date}}</td>
         <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;"> التاريخ </td>
+        <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:top; font-size: 12px !important;">{{$receipt_details->invoice_date}}</td>
+        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;"> Invoice Date </td>
     </tr>
 
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;"> تاريخ الشحن </td>
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;"> تاريخ الاستلام </td>
         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:top; font-size: 12px !important;">
         <!-- Display invoice date If there is no delivery date -->     
             @if(!empty($receipt_details->shipping_custom_field_1_value))
@@ -341,28 +341,28 @@
                 {{$receipt_details->invoice_date}}
             @endif
         </td>
-        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;">Delivery Date
+        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;">Delivery Date
         </td>
     </tr>
     
 
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;"> اسم العميل </td>
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;"> اسم العميل </td>
         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:top; font-size: 12px !important;">{!! $receipt_details->customer_info !!}</td>
-        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;">{{ $receipt_details->customer_label }}</td>
+        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;">{{ $receipt_details->customer_label }}</td>
     </tr>
   
     @if(!empty($receipt_details->customer_tax_number))
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;"> الرقم الضريبي </td>
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;"> الرقم الضريبي </td>
         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:top; font-size: 12px !important;">{{ $receipt_details->customer_tax_number}}</td>
-        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;">{{ $receipt_details->customer_tax_label }}</td>
+        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:top; font-size: 12px !important;">{{ $receipt_details->customer_tax_label }}</td>
     </tr>
     @endif
   
     @if(($receipt_details->customer_name !== 'Walk-In Customer'))
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; font-size: 12px !important;">
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; font-size: 12px !important;">
 		    	@if(!empty($receipt_details->customer_rp_label))
 			    	<span style="text-align=left; font-size: 12px !important;"> نقاط المكافأة </span>
 		    	@endif 
@@ -370,16 +370,16 @@
         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; font-size: 12px !important;">
 		        @if(!empty($receipt_details->customer_rp_label))
 			   <span style="text-align=center">{{ $receipt_details->customer_total_rp }}</span>
-		    	<td style="border: 1px solid #ffffff; text-align: right; padding: 1px; font-size: 12px !important;"><span style="text-align=right">{{ $receipt_details->customer_rp_label }}</span></td>
+		    	<td style="border: 1px solid #ffffff; text-align: left; padding: 1px; font-size: 12px !important;"><span style="text-align=right">{{ $receipt_details->customer_rp_label }}</span></td>
 		    	@endif
         </td>
     </tr>
     @endif
   
     <tr style="background-color: #ffffff;">
-        <td style="border: 1px solid #ffffff; text-align: left; padding: 2px; font-size: 12px !important;"> اسم البائع </td>
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 2px; font-size: 12px !important;"> اسم البائع </td>
         <td style="border: 1px solid #ffffff; text-align: center; padding: 2px; font-size: 12px !important;">{{ $receipt_details->sales_person }}</td>
-        <td style="border: 1px solid #ffffff; text-align: right; padding: 2px; font-size: 12px !important;">{{ $receipt_details->sales_person_label }}</td>
+        <td style="border: 1px solid #ffffff; text-align: left; padding: 2px; font-size: 12px !important;">{{ $receipt_details->sales_person_label }}</td>
     </tr>
 </table>
 
@@ -409,7 +409,7 @@
                 {{$receipt_details->invoice_date}}
             @endif
         </td>
-        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;">تاريخ الشحن
+        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:top; font-size: 12px !important;">تاريخ الاستلام
         </td>
     </tr>
     
@@ -468,7 +468,7 @@ td.b {
 	<div class="col-xs-12">
 		<br/>
 		<table style="width:100%; border: 1px solid black; border-collapse: collapse">
-			<thead style="style="width:100%; border: 1px solid black; border-collapse: collapse">
+			<thead style="width:100%; border: 1px solid black; border-collapse: collapse">
 				<tr style="width:100%; border: 1px solid black; border-collapse: collapse; background-color: #fdfae1 !important; color: black !important; font-size: 15px !important font-weight: bold;" class=>
 					<td style="border: 1px solid black; border-collapse: collapse; background-color: #fdfae1 !important; color: black !important;" class="text-center">#</td>
 					<td style="border: 1px solid black; border-collapse: collapse; background-color: #fdfae1 !important; color: black !important;" class="text-center" width="50%">اسم الصنف<br>
@@ -508,7 +508,7 @@ td.b {
 			@endphp
 			<tbody style="border: 1px solid black; border-collapse: collapse; color: black !important;">
 				@foreach($receipt_details->lines as $line)
-					<tr style="border: 1px solid black; border-collapse: collapse">
+					<tr style="border: 1px solid rgb(124, 124, 124); border-collapse: collapse">
 						<td style="border: 1px solid black; border-collapse: collapse;" valign="top" class="text-center">
 							<span>&nbsp;</span>{{$loop->iteration}} <span>&nbsp;</span>
 						</td>
@@ -527,7 +527,7 @@ td.b {
 										<!-- I have added the above - and the following - and SKU-->
 										@if(!empty($line['brand']))- {{$line['brand']}}
 										@endif
-										@if(!empty($line['sub_sku'])) - SKU {{$line['sub_sku']}} <br> {{$modifier['name']}} {{$modifier['variation']}}
+										@if(!empty($line['sub_sku'])) - SKU {{$line['sub_sku']}} <br> {{$modifier['name']}} {{$modifier['variation']}} - SKU {{$modifier['sub_sku']}}
 										@endif 
 										@if(!empty($line['sell_line_note']))
 										<!-- <br> --> -
@@ -584,14 +584,10 @@ td.b {
 								@endif
 								</td>
 						@endif
-
-						<br> 
-
-					@php
-						$modifier_ex_tax_subtotal=0.00;
-						$modifier_tax_subtotal=0.00;
-					
-					@endphp
+						@php
+							$modifier_ex_tax_subtotal=0.00;
+							$modifier_tax_subtotal=0.00;	
+						@endphp
 						@if(!empty($line['modifiers']))
 							@foreach($line['modifiers'] as $modifier)
 
@@ -616,16 +612,16 @@ td.b {
 						@if(!empty($line['modifiers']))
 							@foreach($line['modifiers'] as $modifier)
 								<td style="border: 1px solid black; border-collapse: collapse; margin-top: -8px;" class="text-center" valign="top">
-									{{number_format($line['quantity'], 0)}} <br><small>{{$line['units']}}</small> <br> {{$modifier['quantity']}} {{$modifier['units']}}
+									{{number_format($line['quantity'], 0)}} <small>{{$line['units']}}</small> <br> {{$modifier['quantity']}} {{$modifier['units']}}
 								</td>
 
 							@endforeach
 						@else
 							<td style="border: 1px solid black; border-collapse: collapse; margin-top: -8px;" class="text-center" valign="top">
-								{{number_format($line['quantity'], 0)}} <br><small>{{$line['units']}}</small> <br> 
+								{{number_format($line['quantity'], 0)}}  <small>{{$line['units']}}</small> <br> 
 							</td>
 						@endif
-						<td style="border: 1px solid black; border-collapse: collapse;" class="text-right" valign="top">
+						<td style="border: 1px solid black; border-collapse: collapse;" class="text-center" valign="top">
 							{{$line['line_discount_uf'] * $line['quantity_uf']}}
 						</td>
 
@@ -841,103 +837,105 @@ td.b {
             <!-- Quantity of Items -->
 				@if(!empty($receipt_details->total_quantity_label))
                   <tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:إجمالي الكمية</td>                  
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> إجمالي الكمية </td>                  
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;">{{number_format($receipt_details->total_quantity, 0)}}<small>&nbsp{{$line['units']}}</small></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Total Qty:</td>                   
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Total Qty</td>                   
                   </tr>
 				@endif
 				
 			<!-- Subtotal Amount -->
 				<tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:إجمالي المبلغ</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> إجمالي المبلغ </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;">{{number_format($totals['taxable_value'], 2)}}</td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Total Amount:</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Total Amount</td>
                 </tr>
 
 			<!-- Invoice Tax -->
 				@if( !empty($receipt_details->tax) )
 					<tr style="background-color: #ffffff; color: black !important;">
-                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:إجمالي ضريبة الفاتورة</td>
+                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> إجمالي ضريبة الفاتورة </td>
                         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><small>{{number_format($receipt_details->tax), 2}}</td>
-                        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Total Inv. VAT:  (+)</td>
+                        <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">(+) Total Inv. VAT </td>
                     </tr>
 			    @endif 
  
             <!-- Items Tax -->
                 <tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:إجمالي الضرية</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> إجمالي الضرية </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{number_format($totals[$tax_heading], 2)}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Total VAT:  (+)</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">(+) Total VAT</td>
                 </tr>
 
-            <!-- Invoice Subtotal -->
-           		<tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:إجمالي الفاتورة</td>
-                    <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{number_format($receipt_details->subtotal_unformatted, 2)}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">{!! $receipt_details->total_label !!}</td>
-                </tr>
-
-            <!-- Items Discount -->
+  <!-- Items Discount -->
                 @if( !empty($receipt_details->total_line_discount) )
 					<tr style="background-color: #ffffff; color: black !important;">
-                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:خصم الاصناف</td>
-						<td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;">{{$receipt_details->total_line_discount}}
+                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> خصم الاصناف </td>
+						<td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->total_line_discount}}</span>
 						</td>
 						<td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">
-							{!! $receipt_details->line_discount_label !!}: (-)
+							 (-) {!! $receipt_details->line_discount_label !!}
 						</td>
 					</tr>
 				@endif
 
+            <!-- Invoice Subtotal -->
+           		<tr style="background-color: #ffffff; color: black !important;">
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> إجمالي الفاتورة </td>
+                    <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{number_format($receipt_details->subtotal_unformatted, 2)}}</span></td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Subtotal</td>
+                </tr>
+
+           
+
             <!-- Total Invoice Discount -->
             @if( !empty($receipt_details->discount) )
 				<tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:خصم الفاتورة</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> خصم الفاتورة </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->discount}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Inv. Disc.:  (-)</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">(-) Inv. Disc</td>
                 </tr>
             @endif
 
             <!-- Shipping Charges -->
             @if(!empty($receipt_details->shipping_charges))
 				<tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:رسوم الشحن</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> رسوم الشحن </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->shipping_charges}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Shipping Chargers:  (+)</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">(+) Shipping Chargers</td>
                 </tr>
 			@endif
 
             <!-- Packing Charges -->
             @if(!empty($receipt_details->packing_charge))
 				<tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:رسوم التعبئة</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> رسوم التعبئة </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->packing_charge}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Packing Chargers:  (+)</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">(+) Packing Chargers</td>
                 </tr>
 			@endif
 
             <!-- Rewards Points Discount -->
             @if( !empty($receipt_details->reward_point_label) )
 				<tr style="background-color: #ffffff; color: black !important;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;">:خصم نقاط المكافاءة</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important;"> خصم نقاط المكافاءة </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->reward_point_amount}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">Rewards Disc.:  (-)</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important;">(-) Rewards Disc.</td>
                 </tr>
 			@endif
 
             <!-- Invoice Total -->
            		<tr style="background-color: #fdfae1;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">:صافي الفاتورة</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"> صافي الفاتورة </td>
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->total}}</span></td>
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">{!! $receipt_details->total_label !!}</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">Total</td>
                 </tr>
-               {{-- <tr>
+                <tr>
 				    <td colspan="5" style="width:100%; background-color: #fdfae1; text-align: right; vertical-align:middle; font-size: 10px; color: black !important;">({{ucwords(trans($receipt_details->total_in_words))}} Saudi Riyals)</td>
-                </tr> --}}
+                </tr> 
 
             <!-- Paid Amount -->
                 <tr style="background-color: #fdfae1;">
-                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; font-weight:bold; color: black !important;">:إجمالي المدفوع</td>
+                    <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; font-weight:bold; color: black !important;"> إجمالي المدفوع </td>
                     @if(!empty($receipt_details->total_paid))
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->total_paid}}</span></td>
                     @else
@@ -949,7 +947,7 @@ td.b {
             <!-- This Invoice Total Due -->
                 @if(!empty($receipt_details->total_due))
                     <tr style="background-color: #fdfae1;">
-                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 14px !important; color: black !important; font-weight:bold;">:المبلغ المتبقي</td>
+                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 14px !important; color: black !important; font-weight:bold;"> المبلغ المتبقي </td>
                         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->total_due}}</span></td>
                         <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">{!! $receipt_details->total_due_label !!}</td>
                   </tr>
@@ -958,7 +956,7 @@ td.b {
             <!-- This Invoice Due Date -->
                 <!--@if(!empty($receipt_details->due_date_label))
                     <tr style="background-color: #fdfae1;">
-                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">:تاريخ الاستحقاق</td>
+                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"> تاريخ الاستحقاق </td>
                         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>
 					    	{{$receipt_details->due_date}}</td>
                         <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">{{$receipt_details->due_date_label}} </td>
@@ -968,7 +966,7 @@ td.b {
             <!-- Total Balance All Due -->
                 @if(!empty($receipt_details->all_due))
                     <tr style="background-color: #fdfae1;">
-                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">:الرصيد المتبقي</td>
+                        <td style="border: 1px solid #ffffff; text-align: right; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"> الرصيد المتبقي </td>
                         <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>
                             {{$receipt_details->all_due}}</td>
                         <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"> {!! $receipt_details->all_bal_label !!}</td>
@@ -1168,7 +1166,7 @@ td.b {
 
 <!-- Additional Notes -->
 <div class="row color-000000">
-	<div class="col-xs-12" "text-center">
+	<div class="col-xs-12 text-center">
 		<br>
 		<p>{!! nl2br($receipt_details->additional_notes) !!}</p>
 	</div>

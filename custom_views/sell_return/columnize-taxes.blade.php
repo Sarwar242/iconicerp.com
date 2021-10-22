@@ -592,17 +592,12 @@ td.b {
 							@foreach($line['modifiers'] as $modifier)
 
 								<td style="border: 1px solid black; border-collapse: collapse;" class="text-right" valign="top">
-									{{ $line['unit_price_before_discount'] }} <br>  {{ number_format($modifier['unit_price_exc_tax'],2) }}								
+									{{ $line['unit_price_before_discount'] }} <br>  {{ $modifier['unit_price_exc_tax'] }}								
 								</td>
 								@php
-									if(!empty( $modifier['unit_price_exc_tax']))
-										$total_unit_price +=  $line['unit_price_before_discount_uf'] + $modifier['unit_price_exc_tax'];
-						
-									$modifier_ex_tax_subtotal += !empty($modifier['unit_price_exc_tax'])? $modifier['unit_price_exc_tax']:0;
-									if(empty($modifier['unit_price_inc_tax']) || empty($modifier['unit_price_exc_tax']))
-										$modifier_tax_subtotal +=0;
-									else
-										$modifier_tax_subtotal +=$modifier['unit_price_inc_tax'] - $modifier['unit_price_exc_tax'];
+									$total_unit_price += $line['unit_price_before_discount_uf'] + $modifier['unit_price_exc_tax'];
+									$modifier_ex_tax_subtotal += $modifier['unit_price_exc_tax'];
+									$modifier_tax_subtotal += $modifier['unit_price_inc_tax']-$modifier['unit_price_exc_tax'];
 								@endphp
 								
 							@endforeach
@@ -687,7 +682,7 @@ td.b {
 						@if(!empty($line['modifiers']))
 								@foreach($line['modifiers'] as $modifier)
 								<td style="border: 1px solid black; border-collapse: collapse;" class="text-right" valign="top">
-								 {{number_format($line['line_total_uf'] + $modifier['line_total'], 2)}}
+									{{ $line['line_total'] + $modifier['line_total'] }}
 								</td>
 							@endforeach
 						@else
@@ -948,7 +943,7 @@ td.b {
                     @else
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>0</span></td>
                     @endif
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;">  {!! isset($receipt_details->total_paid_label) ? $receipt_details->total_paid_label: "Total Paid" !!} </td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"> {!! $receipt_details->total_paid_label !!}</td>
               </tr>
 
             <!-- This Invoice Total Due -->
@@ -1128,7 +1123,7 @@ td.b {
 
             <!-- Paid Amount -->
                 <tr style="background-color: #fdfae1;">
-                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; font-weight:bold; color: black !important;">{!! isset($receipt_details->total_paid_label) ? $receipt_details->total_paid_label: "Total Paid" !!}</td>
+                    <td style="border: 1px solid #ffffff; text-align: left; padding: 1px; vertical-align:middle; font-size: 12px !important; font-weight:bold; color: black !important;">{!! $receipt_details->total_paid_label !!}</td>
                     @if(!empty($receipt_details->total_paid))
                     <td style="border: 1px solid #ffffff; text-align: center; padding: 1px; vertical-align:middle; font-size: 12px !important; color: black !important; font-weight:bold;"><span class="display_currency" data-currency_symbol="false";>{{$receipt_details->total_paid}}</span></td>
                     @else
