@@ -80,6 +80,7 @@ class SellController extends Controller
 
         $business_id = request()->session()->get('user.business_id');
         $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+        $is_crm = $this->moduleUtil->isModuleInstalled('Crm');
         $is_tables_enabled = $this->transactionUtil->isModuleEnabled('tables');
         $is_service_staff_enabled = $this->transactionUtil->isModuleEnabled('service_staff');
         $is_types_service_enabled = $this->moduleUtil->isModuleEnabled('types_of_service');
@@ -217,10 +218,21 @@ class SellController extends Controller
                 }
             }
 
-            if ($is_woocommerce) {
-                $sells->addSelect('transactions.woocommerce_order_id');
-                if (request()->only_woocommerce_sells) {
+            if (!empty(request()->input('source'))) {
+                //only exception for woocommerce
+                if (request()->input('source') == 'woocommerce') {
                     $sells->whereNotNull('transactions.woocommerce_order_id');
+                } else {
+                    $sells->where('transactions.source', request()->input('source'));
+                }
+
+            }
+
+            if ($is_crm) {
+                $sells->addSelect('transactions.crm_is_order_request');
+
+                if (request()->has('crm_is_order_request')) {
+                    $sells->where('transactions.crm_is_order_request', 1);
                 }
             }
 
@@ -257,6 +269,13 @@ class SellController extends Controller
 
             if (!empty(request()->input('service_staffs'))) {
                 $sells->where('transactions.res_waiter_id', request()->input('service_staffs'));
+            }
+
+            $only_pending_shipments = request()->only_pending_shipments == 'true' ? true : false;
+            if ($only_pending_shipments) {
+                $sells->where('transactions.shipping_status', '!=', 'delivered')
+                        ->whereNotNull('transactions.shipping_status');
+                $only_shipments = true;
             }
 
             if (!empty(request()->input('shipping_status'))) {
@@ -470,7 +489,7 @@ class SellController extends Controller
 
                     return $return_due_html;
                 })
-                ->editColumn('invoice_no', function ($row) {
+                ->editColumn('invoice_no', function ($row) use($is_crm) {
                     $invoice_no = $row->invoice_no;
                     if (!empty($row->woocommerce_order_id)) {
                         $invoice_no .= ' <i class="fab fa-wordpress text-primary no-print" title="' . __('lang_v1.synced_from_woocommerce') . '"></i>';
@@ -488,6 +507,10 @@ class SellController extends Controller
 
                     if (!empty($row->is_export)) {
                         $invoice_no .= '</br><small class="label label-default no-print" title="' . __('lang_v1.export') .'">'.__('lang_v1.export').'</small>';
+                    }
+
+                    if ($is_crm && !empty($row->crm_is_order_request)) {
+                        $invoice_no .= ' &nbsp;<small class="label bg-yellow label-round no-print" title="' . __('crm::lang.order_request') .'"><i class="fas fa-tasks"></i></small>';
                     }
 
                     return $invoice_no;
@@ -568,8 +591,13 @@ class SellController extends Controller
 
         $shipping_statuses = $this->transactionUtil->shipping_statuses();
 
+        $sources = $this->transactionUtil->getSources($business_id);
+        if ($is_woocommerce) {
+            $sources['woocommerce'] = 'Woocommerce';
+        }
+
         return view('sell.index')
-        ->with(compact('business_locations', 'customers', 'is_woocommerce', 'sales_representative', 'is_cmsn_agent_enabled', 'commission_agents', 'service_staffs', 'is_tables_enabled', 'is_service_staff_enabled', 'is_types_service_enabled', 'shipping_statuses'));
+        ->with(compact('business_locations', 'customers', 'is_woocommerce', 'sales_representative', 'is_cmsn_agent_enabled', 'commission_agents', 'service_staffs', 'is_tables_enabled', 'is_service_staff_enabled', 'is_types_service_enabled', 'shipping_statuses', 'sources'));
     }
 
     /**
@@ -674,6 +702,18 @@ class SellController extends Controller
             $status = 'ordered';
         }
 
+        $is_order_request_enabled = false;
+        $is_crm = $this->moduleUtil->isModuleInstalled('Crm');
+        if ($is_crm) {
+            $crm_settings = Business::where('id', auth()->user()->business_id)
+                                ->value('crm_settings');
+            $crm_settings = !empty($crm_settings) ? json_decode($crm_settings, true) : [];
+
+            if (!empty($crm_settings['enable_order_request'])) {
+                $is_order_request_enabled = true;
+            }
+        }
+
         return view('sell.create')
             ->with(compact(
                 'business_details',
@@ -697,7 +737,8 @@ class SellController extends Controller
                 'shipping_statuses',
                 'status',
                 'sale_type',
-                'statuses'
+                'statuses',
+                'is_order_request_enabled'
             ));
     }
 
@@ -727,8 +768,8 @@ class SellController extends Controller
         $business_id = request()->session()->get('user.business_id');
         $taxes = TaxRate::where('business_id', $business_id)
                             ->pluck('name', 'id');
-        $tax_amnt = TaxRate::where('business_id', $business_id)
-                            ->select('amount')->first()->amount;
+							$tax_amnt=0;
+       
         $total_tax_addons = 0.0;
         $query = Transaction::where('business_id', $business_id)
                     ->where('id', $id)
@@ -753,6 +794,7 @@ class SellController extends Controller
                 $formated_sell_line = $this->transactionUtil->recalculateSellLineTotals($business_id, $value);
                 $sell->sell_lines[$key] = $formated_sell_line;
             }
+
             if (!empty($taxes[$value->tax_id])) {
                 if(isset($line_taxes[$taxes[$value->tax_id]])) {
                     $line_taxes[$taxes[$value->tax_id]] += ($value->item_tax * $value->quantity);
@@ -760,10 +802,21 @@ class SellController extends Controller
                     $line_taxes[$taxes[$value->tax_id]] = ($value->item_tax * $value->quantity);
                 }
             }
+			//<!--- Dev Changed -->
+			$tax_amnt=0;
+			if(!is_null($value->tax_id)){
+				$tax_amnt = TaxRate::find($value->tax_id)->amount;
+			}else if(!empty($value->product) && !is_null($value->product->tax)){
+                $tax_amnt = TaxRate::find($value->product->tax)->amount;
+            }
 
+     	//<!--- Dev Changed -->
+         //   \Log::warning("tax_amnt: ".json_encode($tax_amnt, JSON_PRETTY_PRINT));
             if(!empty($value->modifiers)){
                 foreach($value->modifiers as $modifier){
-                    $total_tax_addons += ($modifier->unit_price - ($this->transactionUtil->num_f($modifier->unit_price/ (1+($tax_amnt/100))))) * $modifier->quantity;
+                    $total_tax_addons += ($modifier->unit_price - $modifier->unit_price/ (1+($tax_amnt/100))) * $modifier->quantity;
+					$modifier->item_tax = ($modifier->unit_price - $modifier->unit_price/ (1+($tax_amnt/100)));
+                    $modifier->unit_price= $modifier->unit_price/ (1+($tax_amnt/100));
                 }
             }
         }
@@ -1067,8 +1120,20 @@ class SellController extends Controller
         
         $statuses = Transaction::sell_statuses();
 
+        $is_order_request_enabled = false;
+        $is_crm = $this->moduleUtil->isModuleInstalled('Crm');
+        if ($is_crm) {
+            $crm_settings = Business::where('id', auth()->user()->business_id)
+                                ->value('crm_settings');
+            $crm_settings = !empty($crm_settings) ? json_decode($crm_settings, true) : [];
+
+            if (!empty($crm_settings['enable_order_request'])) {
+                $is_order_request_enabled = true;
+            }
+        }
+
         $sales_orders = [];
-        if(!empty($pos_settings['enable_sales_order'])) {
+        if(!empty($pos_settings['enable_sales_order']) || $is_order_request_enabled) {
             $sales_orders = Transaction::where('business_id', $business_id)
                                 ->where('type', 'sales_order')
                                 ->where('contact_id', $transaction->contact_id)
@@ -1093,7 +1158,7 @@ class SellController extends Controller
         $change_return = $this->dummyPaymentLine;
 
         return view('sell.edit')
-            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return'));
+            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled'));
     }
 
     /**

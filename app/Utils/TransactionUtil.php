@@ -57,6 +57,7 @@ class TransactionUtil extends Util
             'customer_group_id' => !empty($input['customer_group_id']) ? $input['customer_group_id'] : null,
             'invoice_no' => $invoice_no,
             'ref_no' => '',
+            'source' => !empty($input['source']) ? $input['source'] : null,
             'total_before_tax' => $invoice_total['total_before_tax'],
             'transaction_date' => $input['transaction_date'],
             'tax_id' => !empty($input['tax_rate_id']) ? $input['tax_rate_id'] : null,
@@ -73,7 +74,7 @@ class TransactionUtil extends Util
             'custom_field_3' => !empty($input['custom_field_3']) ? $input['custom_field_3'] : null,
             'custom_field_4' => !empty($input['custom_field_4']) ? $input['custom_field_4'] : null,
             'is_direct_sale' => !empty($input['is_direct_sale']) ? $input['is_direct_sale'] : 0,
-            'commission_agent' => $input['commission_agent'],
+            'commission_agent' => $input['commission_agent'] ?? null,
             'is_quotation' => isset($input['is_quotation']) ? $input['is_quotation'] : 0,
             'shipping_details' => isset($input['shipping_details']) ? $input['shipping_details'] : null,
             'shipping_address' => isset($input['shipping_address']) ? $input['shipping_address'] : null,
@@ -168,6 +169,7 @@ class TransactionUtil extends Util
             'tax_amount' => $invoice_total['tax'],
             'final_total' => $final_total,
             'document' => isset($input['document']) ? $input['document'] : $transaction->document,
+            'source' => isset($input['source']) ? $input['source'] : $transaction->source,
             'additional_notes' => !empty($input['sale_note']) ? $input['sale_note'] : null,
             'staff_note' => !empty($input['staff_note']) ? $input['staff_note'] : null,
             'custom_field_1' => !empty($input['custom_field_1']) ? $input['custom_field_1'] : null,
@@ -297,7 +299,6 @@ class TransactionUtil extends Util
                 }
             } else {
                 $products_modified_combo[] = $product;
-
                 //calculate unit price and unit price before discount
                 $uf_unit_price = $uf_data ? $this->num_uf($product['unit_price']) : $product['unit_price'];
                 $unit_price_before_discount = $uf_unit_price / $multiplier;
@@ -313,6 +314,7 @@ class TransactionUtil extends Util
                     }
                 }
                 $uf_quantity = $uf_data ? $this->num_uf($product['quantity']) : $product['quantity'];
+				
                 $uf_item_tax = $uf_data ?$this->num_uf($product['item_tax']) : $product['item_tax'];
                 $uf_unit_price_inc_tax = $uf_data ? $this->num_uf($product['unit_price_inc_tax']) : $product['unit_price_inc_tax'];
                 $line = [
@@ -828,6 +830,7 @@ class TransactionUtil extends Util
 
         $transaction = Transaction::find($transaction_id);
         $transaction_type = $transaction->type;
+
         $output = [
             'header_text' => isset($il->header_text) ? $il->header_text : '',
             'business_name' => ($il->show_business_name == 1) ? $business_details->name : '',
@@ -865,12 +868,12 @@ class TransactionUtil extends Util
         
         //Logo
         $output['logo'] = $il->show_logo != 0 && !empty($il->logo) && file_exists(public_path('uploads/invoice_logos/' . $il->logo)) ? asset('uploads/invoice_logos/' . $il->logo) : false;
-        
+
         //Address
         $output['address'] = '';
         $temp = [];
         if ($il->show_landmark == 1) {
-            $output['address'] .= $location_details->landmark;
+            $temp[] = $location_details->landmark;
         }
         if ($il->show_city == 1 &&  !empty($location_details->city)) {
             $temp[] = $location_details->city;
@@ -942,7 +945,7 @@ class TransactionUtil extends Util
             }
             $output['contact'] .= __('business.email') . ': ' . $location_details->email;
         }
-        
+
         //Customer show_customer
         $customer = Contact::find($transaction->contact_id);
 
@@ -952,10 +955,10 @@ class TransactionUtil extends Util
         $output['customer_custom_fields'] = '';
         if ($il->show_customer == 1) {
             $output['customer_label'] = !empty($il->customer_label) ? $il->customer_label : '';
-            $output['customer_name'] = !empty($customer->name) ? $customer->name: '';
+            $output['customer_name'] = !empty($customer->name) ? $customer->name: $customer->supplier_business_name;
             $output['customer_mobile'] = $customer->mobile;
             
-            if (!empty($output['customer_name']) && $receipt_printer_type != 'printer') {
+            if ($receipt_printer_type != 'printer') {
                 $output['customer_info'] .= $customer->contact_address;
                 if (!empty($customer->contact_address)) {
                     $output['customer_info'] .= '<br>';
@@ -1127,7 +1130,7 @@ class TransactionUtil extends Util
 
         $output['lines'] = [];
         $total_exempt = 0;
-
+        
         // Calculating total price and total tax
         $price_exc_tax_total=0;
         $tax_total=0;
@@ -1159,6 +1162,7 @@ class TransactionUtil extends Util
             $total_quantity = 0;
             $total_line_discount = 0;
             $total_line_taxes = 0;
+            $subtotal_exc_tax = 0;
             foreach ($details['lines'] as $line) {
                 if (!empty($line['group_tax_details'])) {
                     foreach ($line['group_tax_details'] as $tax_group_detail) {
@@ -1178,20 +1182,39 @@ class TransactionUtil extends Util
                 if (!empty($line['tax_id']) && $line['tax_percent'] == 0) {
                     $total_exempt += $line['line_total_uf'];
                 }
-
+                $subtotal_exc_tax += $line['line_total_exc_tax_uf'];
                 $total_quantity += $line['quantity_uf'];
                 $total_line_discount += ($line['line_discount_uf'] * $line['quantity_uf']);
                 $total_line_taxes += ($line['tax_unformatted'] * $line['quantity_uf']);
+                //<!--- Dev Changed -->
+                if (!empty($line['modifiers'])) {
+                    foreach ($line['modifiers'] as $modifier){
+                        if($this->num_uf($modifier['quantity'])>0){
+                            $total_quantity += $modifier['quantity'];
+                        }
+                    }
+                }
             }
 
             if (!empty($il->common_settings['total_quantity_label'])) {
                 $output['total_quantity_label'] = $il->common_settings['total_quantity_label'];
                 $output['total_quantity'] = $this->num_f($total_quantity, false, $business_details, true);
             }
+            $output['subtotal_exc_tax'] = $this->num_f($subtotal_exc_tax, false, $business_details, true);
 
             $output['total_line_discount'] = $this->num_f($total_line_discount, true, $business_details);
         } elseif ($transaction_type == 'sell_return') {
-            $parent_sell = Transaction::find($transaction->return_parent_id);
+                         //<!--- Dev Changed -->
+            $parent_sell = Transaction::with([
+                'sell_lines' => function ($q) {
+                    $q->whereNull('parent_sell_line_id');
+                },
+                'sell_lines.line_tax',
+                'sell_lines.sub_unit',
+                'sell_lines.modifiers',
+                'sell_lines.product',
+            ])->find($transaction->return_parent_id);
+
             $lines = $parent_sell->sell_lines;
 
             foreach ($lines as $key => $value) {
@@ -1203,13 +1226,11 @@ class TransactionUtil extends Util
             }
 
             $details = $this->_receiptDetailsSellReturnLines($lines, $il, $business_details);
-             
             $output['lines'] = $details['lines'];
-            
+
             $output['taxes'] = [];
             foreach ($details['lines'] as $line) {
                 if (!empty($line['group_tax_details'])) {
-                    
                     foreach ($line['group_tax_details'] as $tax_group_detail) {
                         if (!isset($output['taxes'][$tax_group_detail['name']])) {
                             $output['taxes'][$tax_group_detail['name']] = 0;
@@ -1217,7 +1238,7 @@ class TransactionUtil extends Util
                         $output['taxes'][$tax_group_detail['name']] += $tax_group_detail['calculated_tax'];
                     }
                 }
-
+        
                 //For calculating price_excluding_tax . [needs to unformat the price]
                 $price_exc_tax_total += $this->num_uf($line['unit_price_exc_tax'])*$this->num_uf((float)$line['quantity']);
                 $tax_total += $this->num_uf($line['tax'])*$this->num_uf($line['quantity']);
@@ -1225,6 +1246,17 @@ class TransactionUtil extends Util
                 if($this->num_uf($line['quantity'])>0){
                     $total_returned_items +=1;
                     $total_quantity_returned += $this->num_uf($line['quantity']);
+                }
+                
+                if (!empty($line['modifiers'])) {
+                    foreach ($line['modifiers'] as $modifier){
+                        if($this->num_uf($modifier['quantity'])>0){
+                            $total_returned_items +=1;
+                            $total_quantity_returned += $this->num_uf($modifier['quantity']);
+                            $price_exc_tax_total += $this->num_uf($modifier['unit_price_exc_tax'])*$this->num_uf((float)$modifier['quantity']);
+                            $tax_total += $this->num_uf($modifier['tax'])*$this->num_uf($modifier['quantity']);
+                        }
+                    }
                 }
 
             }
@@ -1289,8 +1321,8 @@ class TransactionUtil extends Util
         }
         $output['tax_label'] .= ':';
         $output['tax'] = ($transaction->tax_amount != 0) ? $this->num_f($transaction->tax_amount, $show_currency, $business_details) : 0;
-
-        if ($transaction->tax_amount != 0 && $tax->is_tax_group) {
+			// <!--- Dev Changed -->
+        if ($transaction->tax_amount != 0 && !empty($tax) && $tax->is_tax_group) {
             $transaction_group_tax_details = $this->groupTaxDetails($tax, $transaction->tax_amount);
 
             $output['group_tax_details'] = [];
@@ -1412,48 +1444,50 @@ class TransactionUtil extends Util
         //Barcode related information.
         $output['show_barcode'] = !empty($il->show_barcode) ? true : false;
 
-        //Qr code related information.
-        $output['show_qr_code'] = !empty($il->show_qr_code) ? true : false;
-        $qr_code_details = [];
-        $qr_code_fields = !empty($il->qr_code_fields) ? $il->qr_code_fields : [];
+        if (in_array($transaction_type, ['sell', 'sales_order'])) {
+            //Qr code related information.
+            $output['show_qr_code'] = !empty($il->show_qr_code) ? true : false;
+            $qr_code_details = [];
+            $qr_code_fields = !empty($il->qr_code_fields) ? $il->qr_code_fields : [];
 
-        if (in_array('business_name', $qr_code_fields)) {
-            $qr_code_details[] = __('business.business') . ': ' . $business_details->name;
-        }
-        if (in_array('address', $qr_code_fields)) {
-            $qr_code_details[] = __('business.address') . ': ' .$output['address'];
-        }
-        if (in_array('tax_1', $qr_code_fields)) {
-            $qr_code_details[] = $business_details->tax_label_1 . ': ' . $business_details->tax_number_1;
-        }
-        if (in_array('tax_2', $qr_code_fields)) {
-            $qr_code_details[] = $business_details->tax_label_2 . ' ' . $business_details->tax_number_2;
-        }
-        if (in_array('invoice_no', $qr_code_fields)) {
-            $qr_code_details[] = $il->invoice_no_prefix . ': ' . $transaction->invoice_no;
-        }
-        if (in_array('invoice_datetime', $qr_code_fields)) {
-            $qr_code_details[] = $output['date_label'] . ': ' . $output['invoice_date'];
-        }
-        if (in_array('subtotal', $qr_code_fields)) {
-            $qr_code_details[] = $output['subtotal_label'] . ' ' . $output['subtotal'];
-        }
-        if (in_array('total_amount', $qr_code_fields)) {
-            $qr_code_details[] = $output['total_label'] . ' ' . $output['total'];
-        }
-        if (in_array('total_tax', $qr_code_fields)) {
-            $total_order_tax = $transaction->tax_amount + $total_line_taxes;
-            $qr_code_details[] = __('sale.tax') . ': ' . $this->num_f($total_order_tax, $show_currency, $business_details);
-        }
-        if (in_array('customer_name', $qr_code_fields)) {
-            $cust_label = $il->customer_label ?? __('contact.customer');
-            $qr_code_details[] = $cust_label . ': ' . $customer->full_name;
-        }
-        if (in_array('invoice_url', $qr_code_fields)) {
-            $qr_code_details[] = $this->getInvoiceUrl($transaction->id, $business_details->id);
-        }
+            if (in_array('business_name', $qr_code_fields)) {
+                $qr_code_details[] = __('business.business') . ': ' . $business_details->name;
+            }
+            if (in_array('address', $qr_code_fields)) {
+                $qr_code_details[] = __('business.address') . ': ' .$output['address'];
+            }
+            if (in_array('tax_1', $qr_code_fields)) {
+                $qr_code_details[] = $business_details->tax_label_1 . ': ' . $business_details->tax_number_1;
+            }
+            if (in_array('tax_2', $qr_code_fields)) {
+                $qr_code_details[] = $business_details->tax_label_2 . ' ' . $business_details->tax_number_2;
+            }
+            if (in_array('invoice_no', $qr_code_fields)) {
+                $qr_code_details[] = $il->invoice_no_prefix . ': ' . $transaction->invoice_no;
+            }
+            if (in_array('invoice_datetime', $qr_code_fields)) {
+                $qr_code_details[] = $output['date_label'] . ': ' . $output['invoice_date'];
+            }
+            if (in_array('subtotal', $qr_code_fields)) {
+                $qr_code_details[] = $output['subtotal_label'] . ' ' . $output['subtotal'];
+            }
+            if (in_array('total_amount', $qr_code_fields)) {
+                $qr_code_details[] = $output['total_label'] . ' ' . $output['total'];
+            }
+            if (in_array('total_tax', $qr_code_fields)) {
+                $total_order_tax = $transaction->tax_amount + $total_line_taxes;
+                $qr_code_details[] = __('sale.tax') . ': ' . $this->num_f($total_order_tax, $show_currency, $business_details);
+            }
+            if (in_array('customer_name', $qr_code_fields)) {
+                $cust_label = $il->customer_label ?? __('contact.customer');
+                $qr_code_details[] = $cust_label . ': ' . $customer->full_name;
+            }
+            if (in_array('invoice_url', $qr_code_fields)) {
+                $qr_code_details[] = $this->getInvoiceUrl($transaction->id, $business_details->id);
+            }
 
-        $output['qr_code_details'] = $qr_code_details;
+            $output['qr_code_details'] = $qr_code_details;
+        }
         //Module related information.
         $il->module_info = !empty($il->module_info) ? json_decode($il->module_info, true) : [];
         if (!empty($il->module_info['tables']) && $this->isModuleEnabled('tables')) {
@@ -1756,10 +1790,13 @@ class TransactionUtil extends Util
             $cat = $line->product->category;
             $tax_details = TaxRate::find($line->tax_id);
             $unit_tax=0;
-            if(!empty($tax_details))
-                $unit_tax = 100;
-            
-
+			//<!--- Dev Changed -->
+            if(!empty($tax_details)){
+                $unit_tax = $line->unit_price_inc_tax/(1+($tax_details->amount/100));
+			}
+			else if(!empty($product) && !is_null($product->tax)){
+				$tax_details = TaxRate::find($product->tax);
+			}
             $unit_name = !empty($unit->short_name) ? $unit->short_name : '';
 
             if (!empty($line->sub_unit->short_name)) {
@@ -1794,7 +1831,9 @@ class TransactionUtil extends Util
                 'unit_price_before_discount_uf' => $line->unit_price_before_discount,
                 //Fields for 4th column
                 'line_total' => $this->num_f($line->unit_price_inc_tax * $line->quantity, false, $business_details),
-                'line_total_uf' => $line->unit_price_inc_tax * $line->quantity
+                'line_total_uf' => $line->unit_price_inc_tax * $line->quantity,
+                'line_total_exc_tax' => $this->num_f($line->unit_price * $line->quantity, false, $business_details),
+                'line_total_exc_tax_uf' => $line->unit_price * $line->quantity
             ];
 
             $temp = [];
@@ -1897,22 +1936,25 @@ class TransactionUtil extends Util
                     $unit = $modifier_line->product->unit;
                     $brand = $modifier_line->product->brand;
                     $cat = $modifier_line->product->category;
-
+					//<!--- Dev Changed -->
+                    $price_ex_tax = !empty($tax_details)? $modifier_line->unit_price/(1+($tax_details->amount/100)) :$modifier_line->unit_price;
+                    \Log::warning("modifier_line: ". json_encode($modifier_line,JSON_PRETTY_PRINT));
+                    \Log::warning("price_ex_tax : ". json_encode($price_ex_tax ,JSON_PRETTY_PRINT));
                     $modifier_line_array = [
                         //Field for 1st column
                         'name' => $product->name,
                         'variation' => (empty($variation->name) || $variation->name == 'DUMMY') ? '' : $variation->name,
                         //Field for 2nd column
-                        'quantity' => $this->num_f($modifier_line->quantity, false, $business_details),
+                        'quantity' => $modifier_line->quantity,
                         'units' => !empty($unit->short_name) ? $unit->short_name : '',
 
                         //Field for 3rd column
-                        'unit_price_inc_tax' => $this->num_f($modifier_line->unit_price_inc_tax, false, $business_details),
-                        'unit_price_exc_tax' => $this->num_f($modifier_line->unit_price, false, $business_details),
-                        'price_exc_tax' => $modifier_line->quantity * $modifier_line->unit_price,
-
+                        'unit_price_inc_tax' => $modifier_line->unit_price_inc_tax,
+                        'unit_price_exc_tax' => $price_ex_tax,
+                        'price_exc_tax' => $modifier_line->quantity * $price_ex_tax,
+						//<!--- Dev Changed -->
                         //Fields for 4th column
-                        'line_total' => $this->num_f($modifier_line->unit_price_inc_tax * $line->quantity, false, $business_details),
+                        'line_total' => $modifier_line->unit_price_inc_tax * $modifier_line->quantity,
                     ];
                     
                     if ($il->show_sku == 1) {
@@ -1930,6 +1972,7 @@ class TransactionUtil extends Util
             }
 
             $output_lines[] = $line_array;
+			  
         }
 
         return ['lines' => $output_lines];
@@ -1948,8 +1991,12 @@ class TransactionUtil extends Util
         $output_lines = [];
         $output_taxes = ['taxes' => []];
         foreach ($lines as $line) {
+			//<!--- Dev Changed -->
             //Group product taxes by name.
             $tax_details = TaxRate::find($line->tax_id);
+			if(empty($tax_details) && !empty($line->product) ){
+                $tax_details = TaxRate::find($line->product->tax);
+            }
             // if (!empty($tax_details)) {
             //     if ($tax_details->is_tax_group) {
             //         $group_tax_details = $this->groupTaxDetails($tax_details, $line->quantity_returned * $line->item_tax);
@@ -1991,14 +2038,16 @@ class TransactionUtil extends Util
                 'tax' => $this->num_f($line->item_tax, false, $business_details),
                 'tax_name' => !empty($tax_details) ? $tax_details->name: null,
 
-                //Field for 3rd column
+                 //Field for 3rd column
                 'unit_price_inc_tax' => $this->num_f($line->unit_price_inc_tax, false, $business_details),
-                'unit_price_exc_tax' => $this->num_f($line->unit_price, false, $business_details),
+				'unit_price_exc_tax' => $this->num_f($line->unit_price, false, $business_details),
 
                 //Fields for 4th column
-                'line_total' => $this->num_f($line->unit_price_inc_tax * $line->quantity_returned, false, $business_details),
+                'line_total' => $line->unit_price_inc_tax * $line->quantity_returned,
             ];
-            $line_array['line_discount'] = 0;
+            // $line_array['line_discount'] = 0;
+            $line_array['line_discount'] = method_exists($line, 'get_discount_amount') ? $this->num_f($line->get_discount_amount(), false, $business_details) : 0;
+            $line_array['line_discount_uf'] = method_exists($line, 'get_discount_amount') ? $line->get_discount_amount() : 0;
 
             //Group product taxes by name.
             if (!empty($tax_details)) {
@@ -2044,6 +2093,58 @@ class TransactionUtil extends Util
             //     $line_array['product_expiry'] = !empty($line->lot_details->exp_date) ? $this->format_date($line->lot_details->exp_date) : null;
             //     $line_array['product_expiry_label'] = __('lang_v1.expiry');
             // }
+            //If modifier is set set modifiers line to parent sell line
+            if (!empty($line->modifiers)) {
+                foreach ($line->modifiers as $modifier_line) {
+                    if($modifier_line->quantity_returned=='null' || $modifier_line->quantity_returned==0){
+                        continue;
+                    }
+                    $product = $modifier_line->product;
+                    $variation = $modifier_line->variations;
+                    // $unit = $modifier_line->product->unit;
+                    $unit =  $line->product->unit;
+                    $brand = $modifier_line->product->brand;
+                    $cat = $modifier_line->product->category;
+                    //		 <!--- Dev Changed -->
+                    $tax = !empty($tax_details)?$modifier_line->unit_price - $modifier_line->unit_price/(1+($tax_details->amount/100)):0;
+                    $price_ex_tax = !empty($tax_details)?$modifier_line->unit_price/(1+($tax_details->amount/100)):$modifier_line->unit_price;
+                  
+                    $modifier_line_array = [
+                        //Field for 1st column
+                        'name' => $product->name,
+                        'variation' => (empty($variation->name) || $variation->name == 'DUMMY') ? '' : $variation->name,
+                        //Field for 2nd column
+                        'quantity' => $this->num_f($modifier_line->quantity_returned, false, $business_details),
+                        'units' => !empty($unit->short_name) ? $unit->short_name : '',
+						//		 <!--- Dev Changed -->
+                        //Field for 3rd column
+                        'unit_price_inc_tax' => $modifier_line->unit_price_inc_tax,
+                        'unit_price_exc_tax' => $price_ex_tax,
+                        'price_exc_tax' =>  $modifier_line->quantity_returned * $price_ex_tax,      
+                        // 'price_exc_tax' => $modifier_line->quantity_returned * $modifier_line->unit_price,
+
+                        //Fields for 4th column
+                        'line_total' => $modifier_line->unit_price_inc_tax * $line->quantity_returned,
+
+                        //Fields for 5th column
+                        'tax' => $this->num_f($tax, false, $business_details),
+                    ];
+                    
+                    if ($il->show_sku == 1) {
+                        $modifier_line_array['sub_sku'] = !empty($variation->sub_sku) ? $variation->sub_sku : '' ;
+                    }
+                    if ($il->show_cat_code == 1) {
+                        $modifier_line_array['cat_code'] = !empty($cat->short_code) ? $cat->short_code : '';
+                    }
+                    if ($il->show_sale_description == 1) {
+                        $modifier_line_array['sell_line_note'] = !empty($line->sell_line_note) ? $line->sell_line_note : '';
+                    }
+
+                    $line_array['modifiers'][] = $modifier_line_array;
+
+                    $line_array['line_total'] += $modifier_line->unit_price_inc_tax * $line->quantity_returned;
+                }
+            }
 
             $output_lines[] = $line_array;
         }
@@ -4280,6 +4381,11 @@ class TransactionUtil extends Util
             $query->whereDate('sale.transaction_date', $end_date);
         }
 
+        $permitted_locations = auth()->user()->permitted_locations();
+        if ($permitted_locations != 'all') {
+            $query->whereIn('sale.location_id', $permitted_locations);
+        }
+
         //Filter by the location
         if (!empty($location_id)) {
             $query->where('sale.location_id', $location_id);
@@ -4314,6 +4420,10 @@ class TransactionUtil extends Util
         }
         if (!empty($start_date) && !empty($end_date) && $start_date == $end_date) {
             $query_2->whereDate('sale.transaction_date', $end_date);
+        }
+
+        if ($permitted_locations != 'all') {
+            $query_2->whereIn('sale.location_id', $permitted_locations);
         }
 
         //Filter by the location
@@ -4726,13 +4836,15 @@ class TransactionUtil extends Util
      */
     public function getLedgerDetails($contact_id, $start, $end)
     {
+        $business_id = request()->session()->get('user.business_id');
         //Get sum of totals before start date
         $previous_transaction_sums = $this->__transactionQuery($contact_id, $start)
                 ->select(
                     DB::raw("SUM(IF(type = 'purchase', final_total, 0)) as total_purchase"),
                     DB::raw("SUM(IF(type = 'sell' AND status = 'final', final_total, 0)) as total_invoice"),
                     DB::raw("SUM(IF(type = 'sell_return', final_total, 0)) as total_sell_return"),
-                    DB::raw("SUM(IF(type = 'purchase_return', final_total, 0)) as total_purchase_return")
+                    DB::raw("SUM(IF(type = 'purchase_return', final_total, 0)) as total_purchase_return"),
+                    DB::raw("SUM(IF(type = 'opening_balance', final_total, 0)) as total_opening_balance")
                 )->first();
 
         //Get payment totals before start date
@@ -4741,6 +4853,7 @@ class TransactionUtil extends Util
                                     ->get();
 
         $prev_total_invoice_paid = $prev_payments->where('transaction_type', 'sell')->where('is_return', 0)->sum('amount');
+        $prev_total_ob_paid = $prev_payments->where('transaction_type', 'opening_balance')->where('is_return', 0)->sum('amount');
         $prev_total_sell_change_return = $prev_payments->where('transaction_type', 'sell')->where('is_return', 1)->sum('amount');
         $prev_total_sell_change_return = !empty($prev_total_sell_change_return) ? $prev_total_sell_change_return : 0;
         $prev_total_invoice_paid -= $prev_total_sell_change_return;
@@ -4748,9 +4861,9 @@ class TransactionUtil extends Util
         $prev_total_sell_return_paid = $prev_payments->where('transaction_type', 'sell_return')->sum('amount');
         $prev_total_purchase_return_paid = $prev_payments->where('transaction_type', 'purchase_return')->sum('amount');
 
-        $total_prev_paid = $prev_total_invoice_paid + $prev_total_purchase_paid - $prev_total_sell_return_paid - $prev_total_purchase_return_paid;
+        $total_prev_paid = $prev_total_invoice_paid + $prev_total_purchase_paid - $prev_total_sell_return_paid - $prev_total_purchase_return_paid + $prev_total_ob_paid;
 
-        $total_prev_invoice = $previous_transaction_sums->total_purchase + $previous_transaction_sums->total_invoice -  $previous_transaction_sums->total_sell_return -  $previous_transaction_sums->total_purchase_return;
+        $total_prev_invoice = $previous_transaction_sums->total_purchase + $previous_transaction_sums->total_invoice -  $previous_transaction_sums->total_sell_return -  $previous_transaction_sums->total_purchase_return + $previous_transaction_sums->total_opening_balance;
         //$total_prev_paid = $prev_payments_sum->total_paid;
         $beginning_balance = $total_prev_invoice - $total_prev_paid;
 
@@ -4796,7 +4909,7 @@ class TransactionUtil extends Util
                         ->select('transaction_payments.*', 'bl.name as location_name', 't.type as transaction_type', 't.ref_no', 't.invoice_no')
                         ->get();
 
-        $paymentTypes = $this->payment_types(null, true);
+        $paymentTypes = $this->payment_types(null, true, $business_id);
 
         foreach ($payments as $payment) {
 
@@ -4831,6 +4944,7 @@ class TransactionUtil extends Util
                 'payment_status' => '',
                 'total' => '',
                 'payment_method' => !empty($paymentTypes[$payment->method]) ? $paymentTypes[$payment->method] : '',
+                'payment_method_key' => $payment->method,
                 'debit' => in_array($payment->transaction_type, ['purchase', 'sell_return']) || $payment->is_return == 1  ? $payment->amount : '',
                 'credit' => (in_array($payment->transaction_type, ['sell', 'purchase_return', 'opening_balance']) || $payment->is_advance == 1) && $payment->is_return == 0 ? $payment->amount : '',
                 'others' =>  $note 
@@ -4845,13 +4959,15 @@ class TransactionUtil extends Util
         $total_sell_return_paid = $payments->where('transaction_type', 'sell_return')->sum('amount');
         $total_purchase_return_paid = $payments->where('transaction_type', 'purchase_return')->sum('amount');
 
+        $total_invoice_paid += $opening_balance_paid;
+
         $start_date = $this->format_date($start);
         $end_date = $this->format_date($end);
 
         $total_invoice = $invoice_sum - $sell_return_sum;
         $total_purchase = $purchase_sum - $purchase_return_sum;
 
-        $opening_balance_due = $opening_balance - $opening_balance_paid;
+        $opening_balance_due = $opening_balance;
 
         $total_paid = $total_invoice_paid + $total_purchase_paid - $total_sell_return_paid - $total_purchase_return_paid;
         $curr_due = $total_invoice + $total_purchase - $total_paid + $beginning_balance + $opening_balance_due;
@@ -4877,8 +4993,8 @@ class TransactionUtil extends Util
             'payment_status' => '',
             'total' => '',
             'payment_method' => '',
-            'debit' => $contact->type == 'supplier' ? abs($total_opening_bal) : '',
-            'credit' => $contact->type == 'customer' ? abs($total_opening_bal) : '',
+            'debit' => $contact->type == 'customer' ? abs($total_opening_bal) : '',
+            'credit' => $contact->type == 'supplier' ? abs($total_opening_bal) : '',
             'others' => ''
         ]], $ledger) ;
 
@@ -4886,6 +5002,11 @@ class TransactionUtil extends Util
         foreach($ledger as $key => $val) {
             $credit = !empty($val['credit']) ? $val['credit'] : 0;
             $debit = !empty($val['debit']) ? $val['debit'] : 0;
+
+            if (!empty($val['payment_method_key']) && $val['payment_method_key'] == 'advance') {
+                $credit = 0;
+                $debit = 0;
+            }
             $bal += ($credit - $debit);
             $balance = $this->num_f(abs($bal));
 
@@ -5672,5 +5793,42 @@ class TransactionUtil extends Util
             $sales_order->status = $status;
             $sales_order->save();
         }
+    }
+
+    public function getUserTotalSales($business_id, $user_id, $start_date, $end_date)
+    {
+        $totals = Transaction::where('business_id', $business_id)
+                                ->where('commission_agent', $user_id)
+                                ->where('type', 'sell')
+                                ->where('status', 'final')
+                                ->whereBetween(DB::raw('transaction_date'), [$start_date, $end_date])
+                                ->select(
+                                    DB::raw('SUM(final_total) as total_sales'),
+                                    DB::raw('SUM(total_before_tax - shipping_charges - (SELECT SUM(item_tax*quantity) FROM transaction_sell_lines as tsl WHERE tsl.transaction_id=transactions.id) ) as total_sales_without_tax')
+                                )
+                                ->first();
+
+        return [
+            'total_sales' => $totals->total_sales,
+            'total_sales_without_tax' => $totals->total_sales_without_tax
+        ];
+    }
+
+    public function getSources($business_id)
+    {
+        $unique_sources = Transaction::where('business_id', $business_id)
+                                    ->where('type', 'sell')
+                                    ->select('source')
+                                    ->groupBy('source')
+                                    ->get();
+        $sources = [];
+
+        foreach ($unique_sources as $source) {
+            if (!empty($source->source)) {
+                $sources[$source->source] = $source->source;
+            }
+        }
+
+        return $sources;
     }
 }

@@ -30,6 +30,8 @@
                 <th>@lang('product.product_name')</th>
                 <th>@lang('sale.unit_price')</th>
                 <th>@lang('lang_v1.return_quantity')</th>
+                <th>{{ __('sale.discount') }}</th>
+                <th>@lang('sale.tax')</th>
                 <th>@lang('lang_v1.return_subtotal')</th>
             </tr>
         </thead>
@@ -44,7 +46,8 @@
             @endif
 
             @php
-              $unit_name = $sell_line->product->unit->short_name;
+              if(isset($sell_line->product->unit))
+                $unit_name = $sell_line->product->unit->short_name;
 
               if(!empty($sell_line->sub_unit)) {
                 $unit_name = $sell_line->sub_unit->short_name;
@@ -59,9 +62,18 @@
                     - {{ $sell_line->variations->product_variation->name}}
                     - {{ $sell_line->variations->name}}
                   @endif
+                  @if(isset($sell_line->variations) && !empty($sell_line->variations))
+                  ,
+                    {{ $sell_line->variations->sub_sku ?? ''}}
+
+                  @endif
                 </td>
                 <td><span class="display_currency" data-currency_symbol="true">{{ $sell_line->unit_price_inc_tax }}</span></td>
                 <td>{{@format_quantity($sell_line->quantity_returned)}} {{$unit_name}}</td>
+                <td>
+                  <span class="display_currency" data-currency_symbol="true">{{ $sell_line->get_discount_amount() }}</span> @if($sell_line->line_discount_type == 'percentage') ({{$sell_line->line_discount_amount}}%) @endif
+                </td>
+                <td><span class="display_currency" data-currency_symbol="true">{{ $sell_line->item_tax }}</span></td>
                 <td>
                   @php
                     $line_total = $sell_line->unit_price_inc_tax * $sell_line->quantity_returned;
@@ -70,6 +82,37 @@
                   <span class="display_currency" data-currency_symbol="true">{{$line_total}}</span>
                 </td>
             </tr>
+
+              @if(!empty($sell_line->modifiers))
+								@foreach($sell_line->modifiers as $modifier)
+                  @if($modifier->quantity_returned == 0)
+                    @continue
+                  @endif
+
+                  <tr>
+                    <td> &nbsp; </td>
+                    <td>
+                      {{ $modifier->product->name }} - {{ $modifier->variations->name ?? ''}},
+											{{ $modifier->variations->sub_sku ?? ''}}
+                    </td>
+                    <td><span class="display_currency" data-currency_symbol="true">{{ $modifier->unit_price_inc_tax }}</span></td>
+                    <td>{{@format_quantity($modifier->quantity_returned)}} {{$unit_name}}</td>
+                    <td>
+                      &nbsp;
+                     </td>
+                     <!--- Dev Changed -->
+                    <td><span class="display_currency" data-currency_symbol="true">{{ !empty($sell_line->line_tax)?$modifier->unit_price - $modifier->unit_price/(1+($sell_line->line_tax->amount/100)):0 }}</span> </td>
+
+                    <td>
+                      @php
+                        $line_total = $modifier->unit_price_inc_tax * $modifier->quantity_returned;
+                        $total_before_tax += $line_total ;
+                      @endphp
+                      <span class="display_currency" data-currency_symbol="true">{{$line_total}}</span>
+                    </td>
+                  </tr>
+                @endforeach
+              @endif
             @endforeach
           </tbody>
       </table>

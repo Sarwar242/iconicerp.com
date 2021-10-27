@@ -62,29 +62,30 @@
 				              	<th>#</th>
 				              	<th>@lang('product.product_name')</th>
 				              	<th>@lang('sale.unit_price')</th>
+								<th>{{ __('sale.discount') }}</th>
 				              	<th>@lang('lang_v1.sell_quantity')</th>
 				              	<th>@lang('sale.tax')</th>
 				              	<th>@lang('lang_v1.return_quantity')</th>
 								  <!-- Created @ resources/lang/en/lang_v1 for english only , needs translation -->
-				              	<th>@lang('lang_v1.return_tax_subtotal')</th>
+				              	<th>Return Tax Subtotal</th>
 				              	<th>@lang('lang_v1.return_subtotal')</th>
 				            </tr>
 				        </thead>
 				        <tbody>
-							
+							@php $new_index=0; @endphp
 				          	@foreach($sell->sell_lines as $sell_line)
 				          		@php
 					                $check_decimal = 'false';
-					                if($sell_line->product->unit->allow_decimal == 0){
+					                if(isset($sell_line->product->unit->allow_decimal) && $sell_line->product->unit->allow_decimal == 0){
 					                    $check_decimal = 'true';
 					                }
-
-					                $unit_name = $sell_line->product->unit->short_name;
+									if(isset($sell_line->product->unit))
+					                	$unit_name = $sell_line->product->unit->short_name;
 
 					                if(!empty($sell_line->sub_unit)) {
 					                	$unit_name = $sell_line->sub_unit->short_name;
 
-					                	if($sell_line->sub_unit->allow_decimal == 0){
+					                	if(isset($sell_line->sub_unit->allow_decimal) && $sell_line->sub_unit->allow_decimal == 0){
 					                    	$check_decimal = 'true';
 					                	} else {
 					                		$check_decimal = 'false';
@@ -93,7 +94,10 @@
 
 					            @endphp
 				            <tr>
-								@php $unit_tax=$sell_line->item_tax; @endphp
+								@php 
+								$unit_tax=$sell_line->item_tax;
+								$new_index+=1;
+								@endphp
 				              	<td>{{ $loop->iteration }}</td>
 				              	<td>
 				                	{{ $sell_line->product->name }}
@@ -101,24 +105,32 @@
 				                  	- {{ $sell_line->variations->product_variation->name}}
 				                  	- {{ $sell_line->variations->name}}
 				                 	@endif
+									@if(isset($sell_line->variations) && !empty($sell_line->variations))
+									,
+									{{ $sell_line->variations->sub_sku ?? ''}}
+									@endif
 				              	</td>
 				              	<td><span class="display_currency" data-currency_symbol="true">{{ $sell_line->unit_price }}</span></td>
+								<!--- Dev Changed -->
+								<td>
+									<span class="display_currency" data-currency_symbol="true">{{ $sell_line->get_discount_amount()  }}</span> @if($sell_line->line_discount_type == 'percentage') ({{number_format($sell_line->line_discount_amount,2)}}%) @endif
+								</td>
 				              	<td>{{ $sell_line->formatted_qty }} {{$unit_name}}</td>
 				              	<td class="return_unit_tax"></td>
 				              	
 				              	<td>
-						            <input type="text" name="products[{{$loop->index}}][quantity]" value="{{@format_quantity($sell_line->quantity_returned)}}"
+						            <input type="text" name="products[{{$new_index}}][quantity]" value="{{@format_quantity($sell_line->quantity_returned)}}"
 						            class="form-control input-sm input_number return_qty input_quantity"
 						            data-rule-abs_digit="{{$check_decimal}}" 
 						            data-msg-abs_digit="@lang('lang_v1.decimal_value_not_allowed')"
 			              			data-rule-max-value="{{$sell_line->quantity}}"
 			              			data-msg-max-value="@lang('validation.custom-messages.quantity_not_available', ['qty' => $sell_line->formatted_qty, 'unit' => $unit_name ])" 
 						            >
-						            <input name="products[{{$loop->index}}][unit_price_inc_tax]" type="hidden" class="unit_price" value="{{@num_format($sell_line->unit_price_inc_tax)}}">
+						            <input name="products[{{$new_index}}][unit_price_inc_tax]" type="hidden" class="unit_price" value="{{@num_format($sell_line->unit_price_inc_tax)}}">
 									<!-- Created for calculating subtotal excluding tax #Sarwar-->
-						            <input name="products[{{$loop->index}}][unit_price_tax_ex]" type="hidden" class="unit_price_tax_ex" value="{{@num_format($sell_line->unit_price)}}">
-						            <input name="products[{{$loop->index}}][unit_tax]" type="hidden" class="unit_tax" value="{{@num_format($unit_tax)}}">
-						            <input name="products[{{$loop->index}}][sell_line_id]" type="hidden" value="{{$sell_line->id}}">
+						            <input name="products[{{$new_index}}][unit_price_tax_ex]" type="hidden" class="unit_price_tax_ex" value="{{@num_format($sell_line->unit_price)}}">
+						            <input name="products[{{$new_index}}][unit_tax]" type="hidden" class="unit_tax" value="{{@num_format($unit_tax)}}">
+						            <input name="products[{{$new_index}}][sell_line_id]" type="hidden" value="{{$sell_line->id}}">
 									
 				              	</td>
 								<td>
@@ -128,6 +140,61 @@
 				              		<div class="return_subtotal"></div>
 				              	</td>
 				            </tr>
+							
+							@if(!empty($sell_line->modifiers))
+								@foreach($sell_line->modifiers as $modifier)
+									<!--- Dev Changed -->
+									@php 
+									\Log::warning("message: ".$sell_line);
+									$new_index += 1;
+									if(!empty($sell_line->line_tax)){
+										$unit_price_tax_exc=!is_null($sell_line->line_tax)? $modifier->unit_price/ (1+($sell_line->line_tax->amount/100)):$modifier->unit_price; 
+										$unit_tax=!is_null($sell_line->line_tax)? $modifier->unit_price - $modifier->unit_price/(1+($sell_line->line_tax->amount/100)):0; 
+									}else{
+										$unit_price_tax_exc=!is_null($sell_line->line_tax_id)? $modifier->unit_price/ (1+($sell_line->line_tax_amount/100)):$modifier->unit_price; 
+										$unit_tax=!is_null($sell_line->line_tax_id)? $modifier->unit_price - $modifier->unit_price/(1+($sell_line->line_tax_amount/100)):0; 
+									}
+									@endphp
+									<tr>
+										<td>&nbsp;</td>
+										<td>
+											{{ $modifier->product->name }} - {{ $modifier->variations->name ?? ''}},
+											{{ $modifier->variations->sub_sku ?? ''}}
+										</td>
+								
+										<!--- Dev Changed -->
+										<td>
+											<span class="display_currency" data-currency_symbol="true">{{ number_format($unit_price_tax_exc,2) }}</span>
+										</td>
+										<td>
+											&nbsp;
+										</td>
+										<td>{{ @number_format($modifier->quantity, 2) }} {{$unit_name}}</td>
+										<td class="return_unit_tax"></td>
+										<td>
+											<input type="text" name="products[{{$new_index}}][quantity]" value="{{@format_quantity($modifier->quantity_returned)}}"
+											class="form-control input-sm input_number return_qty input_quantity"
+											data-rule-abs_digit="{{$check_decimal}}" 
+											data-msg-abs_digit="@lang('lang_v1.decimal_value_not_allowed')"
+											data-rule-max-value="{{$modifier->quantity}}"
+											data-msg-max-value="@lang('validation.custom-messages.quantity_not_available', ['qty' => $modifier->formatted_qty, 'unit' => $unit_name ])" 
+											>
+											<input name="products[{{$new_index}}][unit_price_inc_tax]" type="hidden" class="unit_price" value="{{@num_format($modifier->unit_price_inc_tax)}}">
+											<!-- Created for calculating subtotal excluding tax #Sarwar-->
+											<input name="products[{{$new_index}}][unit_price_tax_ex]" type="hidden" class="unit_price_tax_ex" value="{{@num_format($unit_price_tax_exc)}}">
+											<input name="products[{{$new_index}}][unit_tax]" type="hidden" class="unit_tax" value="{{@num_format($unit_tax)}}">
+											<input name="products[{{$new_index}}][sell_line_id]" type="hidden" value="{{$modifier->id}}">
+											
+										</td>
+										<td>
+											<div class="return_tax"></div>
+										</td>
+										<td>
+											<div class="return_subtotal"></div>
+										</td>
+									</tr>
+									@endforeach
+								@endif
 				          	@endforeach
 			          	</tbody>
 			        </table>
@@ -157,7 +224,7 @@
 					$tax_percent = $sell->tax->amount;
 				}
 			@endphp
-			{!! Form::hidden('tax_id', $sell->tax_id); !!}
+			{!! Form::hidden('tax_id', !empty($sell->tax)?$sell->tax->id:null); !!}
 			{!! Form::hidden('tax_amount', 0, ['id' => 'tax_amount']); !!}
 			{!! Form::hidden('tax_percent', $tax_percent, ['id' => 'tax_percent']); !!}
 			<div class="row">
@@ -166,7 +233,10 @@
 					&nbsp;(-) <span id="total_return_discount"></span>
 				</div>
 				<div class="col-sm-12 text-right">
-					<strong>@lang('lang_v1.total_return_tax') - @if(!empty($sell->tax))({{$sell->tax->name}} - {{$sell->tax->amount}}%)@endif : </strong> 
+					<strong>@lang('lang_v1.total_return_tax') - 
+						@if(!empty($sell->tax))({{$sell->tax->name}} - 
+						{{$sell->tax->amount}}%) @elseif($sell->tax_name) ({{$sell->tax_name}} - 
+						{{$sell->tax_parcent}}%)  @endif : </strong> 
 					&nbsp;(+) <span id="total_return_tax"></span>
 				</div>
 				<div class="col-sm-12 text-right">
@@ -210,7 +280,7 @@
 			var quantity = __read_number($(this).find('input.return_qty'));
 			var unit_price = __read_number($(this).find('input.unit_price_tax_ex'));
 			var unit_tax = __read_number($(this).find('input.unit_tax'));
-			
+		
 			var subtotal = quantity * unit_price;
 			var return_tax = quantity * unit_tax;
 			$(this).find('.return_unit_tax').text(__currency_trans_from_en(unit_tax, true));

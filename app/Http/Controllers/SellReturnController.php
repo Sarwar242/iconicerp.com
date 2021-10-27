@@ -8,7 +8,7 @@ use App\Contact;
 use App\User;
 use App\Utils\BusinessUtil;
 use App\Utils\ContactUtil;
-
+use App\TaxRate;
 use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
@@ -235,8 +235,10 @@ class SellReturnController extends Controller
             return $this->moduleUtil->expiredResponse();
         }
 
-        $sell = Transaction::where('business_id', $business_id)
-                            ->with(['sell_lines', 'location', 'return_parent', 'contact', 'tax', 'sell_lines.sub_unit', 'sell_lines.product', 'sell_lines.product.unit'])
+       $sell = Transaction::where('business_id', $business_id)
+                            ->with(['location', 'return_parent', 'contact', 'tax', 'sell_lines' => function ($q) {
+                                $q->whereNull('parent_sell_line_id');
+                            }, 'sell_lines.sub_unit','sell_lines.line_tax', 'sell_lines.product', 'sell_lines.product.unit', 'sell_lines.modifiers'])
                             ->find($id);
 
         foreach ($sell->sell_lines as $key => $value) {
@@ -247,7 +249,21 @@ class SellReturnController extends Controller
 
             $sell->sell_lines[$key]->formatted_qty = $this->transactionUtil->num_f($value->quantity, false, null, true);
         }
+		           /** <!--- Dev Changed --> */
+	   foreach ($sell->sell_lines as $sale_line)
+	   {
+		   if (is_null($sale_line->line_tax) && !is_null($sale_line->product)){
+			   if(!is_null($sale_line->product->tax) || $sale_line->product->tax!=0){
+				   $tax = TaxRate::where('business_id', $business_id)
+									   ->select('id', 'name', 'amount')->find($sale_line->product->tax);
+					$sale_line->line_tax =$tax->id;
+					$sale_line->line_tax_amount=$tax->amount;
+			   }
+		   }
+	   }
+        
 
+//\Log::warning("parent: ".json_encode( $sell->sell_lines , JSON_PRETTY_PRINT));
         return view('sell_return.add')
             ->with(compact('sell'));
     }
@@ -328,18 +344,22 @@ class SellReturnController extends Controller
         $business_id = request()->session()->get('user.business_id');
         $query = Transaction::where('business_id', $business_id)
                                 ->where('id', $id)
-                                ->with(
+                                ->with([
                                     'contact',
                                     'return_parent',
                                     'tax',
-                                    'sell_lines',
+                                    'sell_lines' => function ($q) {
+                                        $q->whereNull('parent_sell_line_id');
+                                    },
+                                    'sell_lines.line_tax',
                                     'sell_lines.product',
                                     'sell_lines.variations',
                                     'sell_lines.sub_unit',
                                     'sell_lines.product',
                                     'sell_lines.product.unit',
-                                    'location'
-                                );
+                                    'location',
+                                    'sell_lines.modifiers',
+                                ]);
 
         if (!auth()->user()->can('access_sell_return') && auth()->user()->can('access_own_sell_return')) {
             $sells->where('created_by', request()->session()->get('user.id'));
@@ -347,6 +367,13 @@ class SellReturnController extends Controller
         $sell = $query->first();
 
         foreach ($sell->sell_lines as $key => $value) {
+			//<!--- Dev Changed -->
+            $line_tax=null;
+            if(empty($value->line_tax) && !empty($value->product) ){
+               $line_tax = TaxRate::find($value->product->tax);
+            }
+
+
             if (!empty($value->sub_unit_id)) {
                 $formated_sell_line = $this->transactionUtil->recalculateSellLineTotals($business_id, $value);
                 $sell->sell_lines[$key] = $formated_sell_line;
@@ -358,8 +385,29 @@ class SellReturnController extends Controller
                 $new_data['total_returned_quantity']+=$value->quantity_returned;
             if($value->quantity_returned && $value->unit_price)
                 $new_data['total_returned_without_tax']+= $this->transactionUtil->num_uf($value->quantity_returned) * $this->transactionUtil->num_uf($value->unit_price);
+                if (!empty($value->modifiers)) {
+                    foreach ($value->modifiers as $modifier){
+                        if(is_null($modifier->quantity_returned) || $modifier->quantity_returned==0){
+                            continue;
+                        }
+						//<!--- Dev Changed -->
+                         if(empty($value->line_tax) && !empty($value->product) ){
+                            $unit_price=$modifier->unit_price/ (1+(!is_null($line_tax)?$line_tax->amount:0/100));
+                            $unit_tax=$modifier->unit_price - ($modifier->unit_price/ (1+(!is_null($line_tax)?$line_tax->amount:0/100)));
+                        }else{
+                            $unit_price=$modifier->unit_price/ (1+($value->line_tax->amount/100));
+                            $unit_tax=$modifier->unit_price - ($modifier->unit_price/ (1+($value->line_tax->amount/100)));
+                        }
+                        $new_data['total_tax']+=$this->transactionUtil->num_uf($unit_tax) * $this->transactionUtil->num_uf($modifier->quantity_returned);
+                        
+                        $new_data['total_returned_items']+= 1;
+                
+                        $new_data['total_returned_quantity']+= $modifier->quantity_returned;
+                    
+                        $new_data['total_returned_without_tax']+= $this->transactionUtil->num_uf($modifier->quantity_returned) * $this->transactionUtil->num_uf($unit_price);
+                    }
+                }
         }
-        // dd($sell);
 
         $sell_taxes = [];
         if (!empty($sell->return_parent->tax)) {
@@ -512,10 +560,12 @@ class SellReturnController extends Controller
             $receipt_details = $this->transactionUtil->getReceiptDetails($transaction_id, $location_id, $invoice_layout, $business_details, $location_details, $receipt_printer_type);
             
             //If print type browser - return the content, printer - return printer config data, and invoice format config
+            $output['print_title'] = $receipt_details->invoice_no;
             if ($receipt_printer_type == 'printer') {
                 $output['print_type'] = 'printer';
                 $output['printer_config'] = $this->businessUtil->printerConfig($business_id, $location_details->printer_id);
                 $output['data'] = $receipt_details;
+                
             } else {
                 $output['html_content'] = view('sell_return.receipt', compact('receipt_details'))->render();
             }

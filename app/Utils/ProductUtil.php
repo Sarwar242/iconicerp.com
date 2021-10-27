@@ -613,14 +613,22 @@ class ProductUtil extends Util
         }
 
         $output = ['total_before_tax' => 0, 'tax' => 0, 'discount' => 0, 'final_total' => 0];
-
+        //<!--- Dev Changed -->
+        $output['tax'] = 0;
         //Sub Total
         foreach ($products as $product) {
-            $unit_price_inc_tax = $uf_number ? $this->num_uf($product['unit_price_inc_tax']) : $product['unit_price_inc_tax'];
+             if(isset($product['unit_price_tax_ex']))
+                $unit_price_tax_ex = $uf_number ? $this->num_uf($product['unit_price_tax_ex']) : $product['unit_price_tax_ex'];
+            else
+                $unit_price_tax_ex  = $uf_number ? $this->num_uf($product['unit_price_inc_tax']) : $product['unit_price_inc_tax'];
+                
             $quantity = $uf_number ? $this->num_uf($product['quantity']) : $product['quantity'];
-
-            $output['total_before_tax'] += $quantity * $unit_price_inc_tax;
-
+			
+			//<!--- Dev Changed -->
+            $output['total_before_tax'] += $quantity * $unit_price_tax_ex;
+              
+            $output['tax'] += isset($product['unit_tax'])?($uf_number ? $this->num_uf($product['unit_tax']):$product['unit_tax'] * $product['quantity']):0;
+			//\Log::warning("unit tax: ". $product['unit_tax']);
             //Add modifier price to total if exists
             if (!empty($product['modifier_price'])) {
                 foreach ($product['modifier_price'] as $key => $modifier_price) {
@@ -644,18 +652,20 @@ class ProductUtil extends Util
         }
 
         //Tax
-        $output['tax'] = 0;
+        
         if (!empty($tax_id)) {
             $tax_details = TaxRate::find($tax_id);
             if (!empty($tax_details)) {
                 $output['tax_id'] = $tax_id;
-                $output['tax'] = ($tax_details->amount/100) * ($output['total_before_tax'] - $output['discount']);
+                $output['tax'] = ($tax_details->amount/100) * ($output['total_before_tax']);
             }
+            
         }
+       
         
+		//<!--- Dev Changed -->
         //Calculate total
         $output['final_total'] = $output['total_before_tax'] + $output['tax'] - $output['discount'];
-        
         return $output;
     }
 

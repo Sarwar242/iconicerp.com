@@ -596,7 +596,7 @@ td.b {
 								</td>
 								@php
 									if(!empty( $modifier['unit_price_exc_tax']))
-										$total_unit_price +=  $line['unit_price_before_discount_uf'] + $modifier['unit_price_exc_tax'];
+										$total_unit_price +=  $line['unit_price_before_discount_uf']+ $modifier['unit_price_exc_tax'];
 						
 									$modifier_ex_tax_subtotal += !empty($modifier['unit_price_exc_tax'])? $modifier['unit_price_exc_tax']:0;
 									if(empty($modifier['unit_price_inc_tax']) || empty($modifier['unit_price_exc_tax']))
@@ -616,8 +616,9 @@ td.b {
 						@endif
 						@if(!empty($line['modifiers']))
 							@foreach($line['modifiers'] as $modifier)
+								<!--- Dev Changed -->
 								<td style="border: 1px solid black; border-collapse: collapse; margin-top: -8px;" class="text-center" valign="top">
-									{{number_format($line['quantity'], 0)}} <small>{{$line['units']}}</small> <br> {{$modifier['quantity']}} {{$modifier['units']}}
+									{{number_format($line['quantity'], 0)}} <small>{{$line['units']}}</small> <br> {{number_format($modifier['quantity'], 0)}} <small>{{$modifier['units']}}</small>
 								</td>
 
 							@endforeach

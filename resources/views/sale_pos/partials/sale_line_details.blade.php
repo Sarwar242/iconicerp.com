@@ -73,7 +73,7 @@
                 <span class="display_currency" data-currency_symbol="true">{{ $sell_line->unit_price_before_discount }}</span>
             </td>
             <td>
-                <span class="display_currency" data-currency_symbol="true">{{ $sell_line->get_discount_amount() }}</span> @if($sell_line->line_discount_type == 'percentage') ({{number_format($sell_line->line_discount_amount,2)}}%) @endif
+                <span class="display_currency" data-currency_symbol="true">{{ $sell_line->get_discount_amount() }}</span> @if($sell_line->line_discount_type == 'percentage') ({{$sell_line->line_discount_amount}}%) @endif
             </td>
             <td>
                 <span class="display_currency" data-currency_symbol="true">{{ $sell_line->item_tax }}</span> 
@@ -99,20 +99,21 @@
                 @if( session()->get('business.enable_lot_number') == 1)
                     <td>&nbsp;</td>
                 @endif
-                <td>{{ $modifier->quantity }}</td>
+                <td>{{ number_format($modifier->quantity,2) }} @if(!empty($sell_line->sub_unit)) {{$sell_line->sub_unit->short_name}} @else {{$sell_line->product->unit->short_name}} @endif</td>
                 @if(!empty($pos_settings['inline_service_staff']))
                     <td>
                         &nbsp;
                     </td>
                 @endif
                 <td>
-                    <span class="display_currency" data-currency_symbol="true">{{ number_format($modifier->unit_price/ (1+($tax_amnt/100)),2) }}</span>
+                    <span class="display_currency" data-currency_symbol="true">{{ $modifier->unit_price }}</span>
                 </td>
                 <td>
                     &nbsp;
                 </td>
                 <td>
-                    <span class="display_currency" data-currency_symbol="true">{{ number_format($modifier->unit_price - ($modifier->unit_price/ (1+($tax_amnt/100))),2)}}</span> 
+				<!-- Dev Changed -->
+                    <span class="display_currency" data-currency_symbol="true">{{ number_format($modifier->item_tax,2) }}</span> 
                     @if(!empty($taxes[$sell_line->tax_id]))
                         ( {{ $taxes[$sell_line->tax_id]}} )
                     @endif
