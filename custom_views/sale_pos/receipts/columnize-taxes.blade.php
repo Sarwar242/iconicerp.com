@@ -664,7 +664,7 @@ td.b {
 										@php
 											$totals[$tax_heading] += (($line['tax_unformatted']+$modifier_tax_subtotal) * $line['quantity_uf']);
 										@endphp
-										<span class="display_currency" data-currency_symbol="false">
+										<span>
 										{{($line['tax_unformatted']+$modifier_tax_subtotal) * $line['quantity_uf']}}
 										</span>
 										<br/>
@@ -762,17 +762,17 @@ td.b {
 						Total
 					</th>
                     <th style="border: 1px solid black; border-collapse: collapse;" class="text-right" style="background-color: #fdfae1 !important;">
-						<span class="display_currency" data-currency_symbol="false">{{ number_format($total_unit_price, 2)}}</span>
+						<span>{{ number_format($total_unit_price, 2)}}</span>
 					</th>
 
                     <th style="border: 1px solid black; border-collapse: collapse;" class="text-right" style="background-color: #fdfae1 !important;">
-						<span class="display_currency" data-currency_symbol="false">
+						<span>
 							{{number_format($receipt_details->total_quantity, 2)}}
 						</span>
 					</th>
                     <th style="border: 1px solid black; border-collapse: collapse;" class="text-right" style="background-color: #fdfae1 !important;">
-						<span class="display_currency" data-currency_symbol="false">{{$receipt_details->total_line_discount}}
-						</span>
+						{{$receipt_details->total_line_discount}}
+						
 					</th>
                     <th style="border: 1px solid black; border-collapse: collapse;" class="text-right" style="background-color: #fdfae1 !important;">
 						<span>{{number_format($totals['taxable_value'], 2)}}</span>

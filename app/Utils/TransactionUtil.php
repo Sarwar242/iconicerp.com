@@ -1202,7 +1202,7 @@ class TransactionUtil extends Util
             }
             $output['subtotal_exc_tax'] = $this->num_f($subtotal_exc_tax, false, $business_details, true);
 
-            $output['total_line_discount'] = $this->num_f($total_line_discount, true, $business_details);
+            $output['total_line_discount'] = $this->num_f($total_line_discount, false, $business_details);
         } elseif ($transaction_type == 'sell_return') {
                          //<!--- Dev Changed -->
             $parent_sell = Transaction::with([

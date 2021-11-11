@@ -218,15 +218,15 @@ class SellController extends Controller
                 }
             }
 
-            if (!empty(request()->input('source'))) {
-                //only exception for woocommerce
-                if (request()->input('source') == 'woocommerce') {
-                    $sells->whereNotNull('transactions.woocommerce_order_id');
-                } else {
-                    $sells->where('transactions.source', request()->input('source'));
-                }
+            // if (!empty(request()->input('source'))) {
+            //     //only exception for woocommerce
+            //     if (request()->input('source') == 'woocommerce') {
+            //         $sells->whereNotNull('transactions.woocommerce_order_id');
+            //     } else {
+            //         $sells->where('transactions.source', request()->input('source'));
+            //     }
 
-            }
+            // }
 
             if ($is_crm) {
                 $sells->addSelect('transactions.crm_is_order_request');
@@ -591,13 +591,13 @@ class SellController extends Controller
 
         $shipping_statuses = $this->transactionUtil->shipping_statuses();
 
-        $sources = $this->transactionUtil->getSources($business_id);
-        if ($is_woocommerce) {
-            $sources['woocommerce'] = 'Woocommerce';
-        }
+        // $sources = $this->transactionUtil->getSources($business_id);
+        // if ($is_woocommerce) {
+        //     $sources['woocommerce'] = 'Woocommerce';
+        // }
 
         return view('sell.index')
-        ->with(compact('business_locations', 'customers', 'is_woocommerce', 'sales_representative', 'is_cmsn_agent_enabled', 'commission_agents', 'service_staffs', 'is_tables_enabled', 'is_service_staff_enabled', 'is_types_service_enabled', 'shipping_statuses', 'sources'));
+        ->with(compact('business_locations', 'customers', 'is_woocommerce', 'sales_representative', 'is_cmsn_agent_enabled', 'commission_agents', 'service_staffs', 'is_tables_enabled', 'is_service_staff_enabled', 'is_types_service_enabled', 'shipping_statuses'));
     }
 
     /**
